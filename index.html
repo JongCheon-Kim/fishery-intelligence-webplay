@@ -102,7 +102,7 @@ footer{
 
 </div>
 
-<footer>© 2026 KAFRI • Stable Branch Rendering</footer>
+<footer>© 2026 KAFRI • GitHub Pages Rendering</footer>
 
 <script>
 const OWNER = "JongCheon-Kim";
@@ -113,7 +113,7 @@ const frame = document.getElementById("viewerFrame");
 const empty = document.getElementById("empty");
 const versionInfo = document.getElementById("versionInfo");
 
-/* 🔹 1. 최신 Release 태그 표시 (버전 정보용) */
+/* 🔹 최신 Release 버전 표시 */
 async function loadLatestRelease(){
     try{
         const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`);
@@ -128,7 +128,7 @@ async function loadLatestRelease(){
     }
 }
 
-/* 🔹 2. main 브랜치 HTML 파일 목록 불러오기 */
+/* 🔹 main 브랜치 HTML 파일 목록 */
 async function loadMainFiles(){
     try{
         const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents`);
@@ -158,11 +158,13 @@ async function loadMainFiles(){
     }
 }
 
-/* 🔹 3. main 브랜치 raw 경로로 렌더링 */
+/* 🔥 핵심 수정: GitHub Pages URL 사용 */
 function openFile(fileName){
     empty.style.display="none";
-    const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${fileName}`;
-    frame.src = rawUrl;
+
+    const pageUrl = `https://${OWNER}.github.io/${REPO}/${fileName}`;
+
+    frame.src = pageUrl;
 }
 
 loadLatestRelease();
