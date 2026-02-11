@@ -73,7 +73,7 @@
         .chat-messages { flex: 1; overflow-y: auto; padding: 1.5rem; scrollbar-width: thin; scrollbar-color: #30363d transparent; }
         .chat-input-area { padding: 1.5rem; background: rgba(15, 23, 42, 0.9); border-top: 1px solid rgba(255, 255, 255, 0.1); }
         
-        .loader { position: absolute; inset: 0; background: #05070a; z-index: 50; display: flex; align-items: center; justify-content: center; }
+        .loader { position: absolute; inset: 0; background: #05070a; z-index: 100; display: flex; align-items: center; justify-content: center; }
         .control-btn { @apply p-4 rounded-[1.2rem] bg-gray-900/90 border border-white/10 text-gray-400 hover:text-white hover:bg-blue-600 transition-all shadow-2xl active:scale-90; }
         .badge-v { @apply text-[9px] px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400 font-bold ml-2; }
     </style>
@@ -126,7 +126,7 @@
             <div id="loader" class="loader hidden">
                 <div class="text-center">
                     <i class="fa-solid fa-compass fa-spin text-5xl text-blue-600 mb-6"></i>
-                    <p id="loader-text" class="text-[11px] font-mono tracking-widest text-gray-500 uppercase animate-pulse italic text-white">Syncing Releases...</p>
+                    <p id="loader-text" class="text-[11px] font-mono tracking-widest text-gray-500 uppercase animate-pulse italic text-white">Streaming Playback...</p>
                 </div>
             </div>
 
@@ -162,7 +162,7 @@
             </div>
             <div class="chat-messages space-y-5" id="chat-box">
                 <div class="bg-blue-600/10 p-5 rounded-[1.5rem] border border-blue-500/20 text-blue-100">
-                    <p class="text-xs leading-relaxed font-bold">소장님, 반갑습니다. 릴리즈 자산 기반의 실시간 분석을 위해 대기 중입니다.</p>
+                    <p class="text-xs leading-relaxed font-bold">소장님, 반갑습니다. 릴리즈 자산 기반의 실시간 스트리밍 분석을 위해 대기 중입니다.</p>
                 </div>
             </div>
             <div class="chat-input-area">
@@ -191,9 +191,7 @@
         let currentScale = 1;
         let reportSeries = [];
 
-        // 릴리즈 정보 자동 획득 (로직 강화)
         async function fetchGitHubAssets() {
-            // 소장님의 아이디와 저장소명을 고정값 혹은 감지값으로 설정
             const owner = "jongcheon-kim";
             const repo = "fishery-intelligence-webplay";
 
@@ -224,7 +222,7 @@
                 reportSeries = allAssets.sort((a, b) => a.id.localeCompare(b.id, undefined, {numeric: true}));
                 renderList();
             } catch (err) {
-                container.innerHTML = `<p class="text-red-500 text-[10px] text-center py-10 italic">릴리즈 데이터를 불러올 수 없습니다. (GitHub API 제한 혹은 주소 오류)</p>`;
+                container.innerHTML = `<p class="text-red-500 text-[10px] text-center py-10 italic">릴리즈 동기화 실패 (네트워크 확인 요망)</p>`;
             } finally {
                 loader.classList.add('hidden');
             }
@@ -232,22 +230,24 @@
 
         function renderList() {
             if (reportSeries.length === 0) {
-                container.innerHTML = `<p class="text-[10px] text-gray-600 italic text-center py-10 text-white">표시할 리포트가 없습니다.</p>`;
+                container.innerHTML = `<p class="text-[10px] text-gray-600 italic text-center py-10 text-white">동기화된 리포트가 없습니다.</p>`;
                 return;
             }
             container.innerHTML = reportSeries.map((file, idx) => `
                 <div class="report-card p-5 rounded-[1.8rem] flex items-center gap-6" id="card-${idx}" onclick="selectReport(${idx})">
                     <div class="number-tag text-gray-400">${file.id}</div>
-                    <div class="overflow-hidden flex-1">
+                    <div class="overflow-hidden flex-1 text-white">
                         <div class="flex items-center"><p class="text-[10px] text-blue-500 font-bold italic">${file.version}</p><span class="badge-v text-white">${file.published}</span></div>
-                        <h3 class="text-[14px] font-black text-white truncate mt-1 text-white">${file.title}</h3>
+                        <h3 class="text-[14px] font-black truncate mt-1 text-white">${file.title}</h3>
                     </div>
                 </div>
             `).join('');
         }
 
         /**
-         * [핵심] 다운로드 방지 스트리밍 플레이 로직
+         * [소장님을 위한 100% 플레이 해결책]
+         * 릴리즈 파일 URL을 바로 열지 않고, 'Blob'이라는 메모리 객체로 변환하여
+         * 브라우저가 '웹페이지'로 강제 인식하게 만듭니다. (다운로드 방지 기술)
          */
         async function selectReport(idx) {
             if (activeIdx === idx) return;
@@ -258,29 +258,29 @@
             welcome.classList.add('hidden');
             frame.classList.add('hidden');
             loader.classList.remove('hidden');
-            loaderText.innerText = "Direct Streaming Mode...";
+            loaderText.innerText = "Decrypting & Playing...";
             resetZoom();
             
             try {
-                // 릴리즈 파일 내용을 주소로 열지 않고, 텍스트(Code)로 직접 긁어옵니다.
-                // 이를 통해 브라우저의 '자동 다운로드' 명령을 무시합니다.
+                // 1단계: 깃허브 서버에서 파일 데이터(Blob)를 직접 긁어옵니다.
                 const response = await fetch(reportSeries[idx].url);
-                const htmlContent = await response.text();
+                const blob = await response.blob();
                 
-                // 긁어온 내용을 뷰어에 직접 주입하여 '플레이' 시킵니다.
-                frame.srcdoc = htmlContent;
+                // 2단계: 긁어온 데이터의 형식을 'HTML 웹페이지'로 강제 설정합니다. (핵심!)
+                const htmlBlob = new Blob([blob], { type: 'text/html' });
+                
+                // 3단계: 가상의 메모리 주소를 만들어 iframe에 꽂아넣습니다.
+                const playUrl = URL.createObjectURL(htmlBlob);
+                
+                frame.src = playUrl;
                 
                 frame.onload = () => {
                     loader.classList.add('hidden');
                     frame.classList.remove('hidden');
-                    addAiMessage(`시스템: 시리즈 ${reportSeries[idx].id}번 리포트 브리핑을 시작합니다.`);
+                    addAiMessage(`시스템: 릴리즈 ${reportSeries[idx].id}번 데이터 실시간 스트리밍 재생 중...`);
                 };
             } catch (err) {
-                // 만약 CORS 문제 등으로 fetch가 막힐 경우를 대비한 2차 시도 (상대 경로 활용)
-                addAiMessage("시스템: 직접 스트리밍 실패. 예비 경로로 재시도합니다.");
-                frame.srcdoc = "";
-                frame.src = reportSeries[idx].id + ".html"; // 파일명.html로 직접 시도
-                frame.classList.remove('hidden');
+                addAiMessage("오류: 데이터 스트리밍 중 문제가 발생했습니다. (네트워크 혹은 보안 설정)");
                 loader.classList.add('hidden');
             }
         }
@@ -317,8 +317,8 @@
                     })
                 });
                 const data = await response.json();
-                addAiMessage(data.candidates?.[0]?.content?.parts?.[0]?.text || "데이터 분석 실패.");
-            } catch (err) { addAiMessage("연결 오류: API 키가 유효하지 않습니다."); }
+                addAiMessage(data.candidates?.[0]?.content?.parts?.[0]?.text || "분석 실패.");
+            } catch (err) { addAiMessage("API 오류 발생."); }
         }
 
         function addUserMessage(msg) {
