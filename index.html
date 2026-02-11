@@ -145,7 +145,7 @@ async function loadReleases(){
                 item.className="file-item";
                 item.textContent = file.name;
                 item.onclick=()=>{
-                    openFile(file.browser_download_url);
+                    openFile(file.browser_download_url, rel.tag_name);
                 };
                 group.appendChild(item);
             });
@@ -158,9 +158,22 @@ async function loadReleases(){
     }
 }
 
-function openFile(url){
+/* 🔥 핵심 수정 부분 */
+function openFile(downloadUrl, tag){
+
     empty.style.display="none";
-    frame.src=url;
+
+    // Release 다운로드 URL → raw 경로 변환
+    // 예:
+    // https://github.com/OWNER/REPO/releases/download/v1.0/01.html
+    // →
+    // https://raw.githubusercontent.com/OWNER/REPO/v1.0/01.html
+
+    const rawUrl = downloadUrl
+        .replace("https://github.com/", "https://raw.githubusercontent.com/")
+        .replace(`/releases/download/${tag}/`, `/${tag}/`);
+
+    frame.src = rawUrl;
 }
 
 loadReleases();
