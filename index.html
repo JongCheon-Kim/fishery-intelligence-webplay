@@ -3,30 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KAFRI Release HTML WebPlayer</title>
+<title>KAFRI HTML Document Hub</title>
 
 <style>
 body{
     margin:0;
-    background:#05070a;
-    color:#e5e7eb;
-    font-family:system-ui, -apple-system, "Noto Sans KR", sans-serif;
+    background:#0b1220;
+    color:#e2e8f0;
+    font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;
     display:flex;
     flex-direction:column;
     height:100vh;
 }
 header{
     padding:14px 20px;
-    background:#0f172a;
+    background:#111827;
     border-bottom:1px solid rgba(255,255,255,0.08);
     display:flex;
     justify-content:space-between;
-    align-items:center;
 }
 header h1{
-    font-size:14px;
-    letter-spacing:0.2em;
     margin:0;
+    font-size:14px;
+    letter-spacing:0.25em;
 }
 .container{
     flex:1;
@@ -35,29 +34,25 @@ header h1{
 }
 .sidebar{
     width:380px;
-    background:#111827;
+    background:#0f172a;
     overflow:auto;
     border-right:1px solid rgba(255,255,255,0.08);
     padding:15px;
 }
-.release-group{
-    margin-bottom:20px;
-}
-.release-title{
-    font-weight:bold;
-    margin-bottom:8px;
-    font-size:13px;
+.section-title{
+    font-size:12px;
+    margin-bottom:10px;
     color:#60a5fa;
 }
 .file-item{
     padding:10px;
     margin-bottom:6px;
-    border-radius:10px;
+    border-radius:8px;
     background:rgba(255,255,255,0.05);
     cursor:pointer;
 }
 .file-item:hover{
-    background:rgba(59,130,246,0.2);
+    background:rgba(96,165,250,0.2);
 }
 .viewer{
     flex:1;
@@ -75,15 +70,13 @@ iframe{
     display:flex;
     justify-content:center;
     align-items:center;
-    color:#64748b;
-    font-size:14px;
+    color:#94a3b8;
 }
 footer{
     text-align:center;
     padding:8px;
     font-size:11px;
-    background:#0f172a;
-    border-top:1px solid rgba(255,255,255,0.08);
+    background:#111827;
 }
 </style>
 </head>
@@ -91,92 +84,89 @@ footer{
 <body>
 
 <header>
-<h1>KAFRI RELEASE HTML PLAYER</h1>
-<div>JongCheon-Kim / fishery-intelligence-webplay</div>
+<h1>KAFRI DOCUMENT HUB</h1>
+<div id="versionInfo">Loading version...</div>
 </header>
 
 <div class="container">
-<div class="sidebar" id="sidebar">
-Loading releases...
+
+<div class="sidebar">
+<div class="section-title">📄 HTML Documents (main branch)</div>
+<div id="fileList">Loading files...</div>
 </div>
 
 <div class="viewer">
-<div class="empty" id="empty">Release HTML 문서를 선택하십시오.</div>
+<div class="empty" id="empty">문서를 선택하십시오.</div>
 <iframe id="viewerFrame"></iframe>
 </div>
+
 </div>
 
-<footer>© 2026 KAFRI Release Document System</footer>
+<footer>© 2026 KAFRI • Stable Branch Rendering</footer>
 
 <script>
 const OWNER = "JongCheon-Kim";
 const REPO  = "fishery-intelligence-webplay";
 
-const sidebar = document.getElementById("sidebar");
+const fileList = document.getElementById("fileList");
 const frame = document.getElementById("viewerFrame");
 const empty = document.getElementById("empty");
+const versionInfo = document.getElementById("versionInfo");
 
-async function loadReleases(){
+/* 🔹 1. 최신 Release 태그 표시 (버전 정보용) */
+async function loadLatestRelease(){
     try{
-        const response = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases`);
-        const releases = await response.json();
-
-        if(!Array.isArray(releases) || releases.length===0){
-            sidebar.innerHTML="Release가 없습니다.";
-            return;
+        const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`);
+        const data = await res.json();
+        if(data.tag_name){
+            versionInfo.innerText = "Latest Release: " + data.tag_name;
+        }else{
+            versionInfo.innerText = "No release";
         }
-
-        sidebar.innerHTML="";
-
-        releases.forEach(rel=>{
-            const htmlAssets = rel.assets.filter(a=>a.name.endsWith(".html"));
-            if(htmlAssets.length===0) return;
-
-            const group = document.createElement("div");
-            group.className="release-group";
-
-            const title = document.createElement("div");
-            title.className="release-title";
-            title.textContent = "🏷 " + rel.tag_name;
-            group.appendChild(title);
-
-            htmlAssets.forEach(file=>{
-                const item = document.createElement("div");
-                item.className="file-item";
-                item.textContent = file.name;
-                item.onclick=()=>{
-                    openFile(file.browser_download_url, rel.tag_name);
-                };
-                group.appendChild(item);
-            });
-
-            sidebar.appendChild(group);
-        });
-
-    }catch(err){
-        sidebar.innerHTML="GitHub API 오류 발생";
+    }catch{
+        versionInfo.innerText = "Release info unavailable";
     }
 }
 
-/* 🔥 핵심 수정 부분 */
-function openFile(downloadUrl, tag){
+/* 🔹 2. main 브랜치 HTML 파일 목록 불러오기 */
+async function loadMainFiles(){
+    try{
+        const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents`);
+        const files = await res.json();
 
+        const htmlFiles = files.filter(f => 
+            f.name.endsWith(".html") && f.name !== "index.html"
+        );
+
+        if(htmlFiles.length === 0){
+            fileList.innerText = "HTML 파일 없음";
+            return;
+        }
+
+        fileList.innerHTML = "";
+
+        htmlFiles.forEach(file=>{
+            const div = document.createElement("div");
+            div.className="file-item";
+            div.innerText = file.name;
+            div.onclick = ()=> openFile(file.name);
+            fileList.appendChild(div);
+        });
+
+    }catch{
+        fileList.innerText = "파일 목록 로드 실패";
+    }
+}
+
+/* 🔹 3. main 브랜치 raw 경로로 렌더링 */
+function openFile(fileName){
     empty.style.display="none";
-
-    // Release 다운로드 URL → raw 경로 변환
-    // 예:
-    // https://github.com/OWNER/REPO/releases/download/v1.0/01.html
-    // →
-    // https://raw.githubusercontent.com/OWNER/REPO/v1.0/01.html
-
-    const rawUrl = downloadUrl
-        .replace("https://github.com/", "https://raw.githubusercontent.com/")
-        .replace(`/releases/download/${tag}/`, `/${tag}/`);
-
+    const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${fileName}`;
     frame.src = rawUrl;
 }
 
-loadReleases();
+loadLatestRelease();
+loadMainFiles();
 </script>
 
 </body>
