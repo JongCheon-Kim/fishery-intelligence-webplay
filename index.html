@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KAFRI HTML Document Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-AI Sea Research</title>
 
 <style>
 body{
@@ -14,6 +14,7 @@ body{
     display:flex;
     flex-direction:column;
     height:100vh;
+    overflow-x:hidden;
 }
 header{
     padding:14px 20px;
@@ -25,7 +26,7 @@ header{
 header h1{
     margin:0;
     font-size:14px;
-    letter-spacing:0.25em;
+    letter-spacing:0.15em;
 }
 .container{
     flex:1;
@@ -78,20 +79,35 @@ footer{
     font-size:11px;
     background:#111827;
 }
+
+/* 🔥 모바일 대응 */
+@media (max-width: 768px){
+    .container{
+        flex-direction:column;
+    }
+    .sidebar{
+        width:100%;
+        border-right:none;
+        border-bottom:1px solid rgba(255,255,255,0.08);
+    }
+    .viewer{
+        height:70vh;
+    }
+}
 </style>
 </head>
 
 <body>
 
 <header>
-<h1>KAFRI DOCUMENT HUB</h1>
+<h1>K-AI Sea Research</h1>
 <div id="versionInfo">Loading version...</div>
 </header>
 
 <div class="container">
 
 <div class="sidebar">
-<div class="section-title">📄 HTML Documents (main branch)</div>
+<div class="section-title">📄 HTML Documents</div>
 <div id="fileList">Loading files...</div>
 </div>
 
@@ -113,7 +129,6 @@ const frame = document.getElementById("viewerFrame");
 const empty = document.getElementById("empty");
 const versionInfo = document.getElementById("versionInfo");
 
-/* 🔹 최신 Release 버전 표시 */
 async function loadLatestRelease(){
     try{
         const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`);
@@ -124,11 +139,10 @@ async function loadLatestRelease(){
             versionInfo.innerText = "No release";
         }
     }catch{
-        versionInfo.innerText = "Release info unavailable";
+        versionInfo.innerText = "";
     }
 }
 
-/* 🔹 main 브랜치 HTML 파일 목록 */
 async function loadMainFiles(){
     try{
         const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents`);
@@ -158,13 +172,17 @@ async function loadMainFiles(){
     }
 }
 
-/* 🔥 핵심 수정: GitHub Pages URL 사용 */
+/* 🔥 모바일에서는 새창 이동 */
 function openFile(fileName){
-    empty.style.display="none";
 
     const pageUrl = `https://${OWNER}.github.io/${REPO}/${fileName}`;
 
-    frame.src = pageUrl;
+    if (window.innerWidth < 768) {
+        window.location.href = pageUrl;
+    } else {
+        empty.style.display="none";
+        frame.src = pageUrl;
+    }
 }
 
 loadLatestRelease();
